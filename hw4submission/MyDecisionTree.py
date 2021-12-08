@@ -26,35 +26,36 @@ class Decision_tree:
     def predict(self,test_x):
         # iterate through all samples
         prediction = np.zeros([len(test_x),]).astype('int') # placeholder
-        #print("prediction shape", np.shape(prediction))    #3000 vector
-        #print('text_x shape', np.shape(test_x))            #3000 x 64
-        node = self.root
         for i in range(len(test_x)):
             # traverse the decision-tree based on the features of the current sample
             #pass # placeholder
+            node = self.root
             data = test_x[i,:]
-            #print('data shape',np.shape(data))
-            #print('data[3]', data[3])
-            #print(data)
-            while node:
-                #print(node.feature)
-                print('data[node.feature]', data[node.feature])
-                print('data[node.feature] shape', np.shape(data[node.feature]))
-                
-                if data[node.feature] == 0:
-                    node = node.left_child
-                else:
+
+            while node.left_child or node.right_child:  # == False:
+                #print('data[node.feature]', data[node.feature])
+                #print('feature', node.feature)
+                #print('type of feature', type(data[node.feature]))
+                #if type(data[node.feature]) == np.float64:
+                if data[node.feature] == 1:        
                     node = node.right_child
-                #node = node.left_child
-                #node = node.right_child
-            
-            prediction[i] = node.label
+                else:
+                    node = node.left_child
+                #else:
+                #    if data[0][node.feature] == 1:
+                #        node = node.right_child
+                #    else:
+                #        node = node.label
+                #else:
+            #print(node.label)
+            #mostFrequent = np.argmax(np.bincount(node.label))
+            #print(node.label)
+            prediction[i] = node.label      #mostFrequent#node.label
         return prediction
 
     def generate_tree(self,data,label):
         # initialize the current tree node
         #print('data shape', np.shape(data))   #3000 x 64
-        
         cur_node = Tree_node()
 
         # compute the node entropy
@@ -63,26 +64,38 @@ class Decision_tree:
         # determine if the current node is a leaf node
         if node_entropy < self.min_entropy:
             # determine the class label for leaf node
-            #cur_node.isleaf = True
-            self.label = label
+            cur_node.isleaf = True
+            #print('label', label)
+            mostFrequent = np.argmax(np.bincount(label))
+            cur_node.label = mostFrequent
             return cur_node
 
         # select the feature that will best split the current non-leaf node
         selected_feature = self.select_feature(data,label)
+        #print(selected_feature)
         cur_node.feature = selected_feature
 
         # split the data based on the selected feature and start the next level of recursion
         featureData = data[:,selected_feature]
-        zeros = np.asarray(np.where(featureData == 0))
-        ones = np.asarray(np.where(featureData == 1))
-        leftData = data[zeros[0]]
-        leftLabel = label[zeros[0]]
+        #zeros = np.asarray(np.where(featureData == 0))
+        zeros = np.asarray(np.where(featureData == 0))[0]
+        ones = np.asarray(np.where(featureData == 1))[0]
+        #print("zeros",zeros)
+        #leftData = data[zeros[0]]
+        #print('left data shape', np.shape(leftData))
+        #leftLabel = label[zeros[0]]
         
-        rightData = data[ones[0]]
-        rightLabel = label[ones[0]]
+        #rightData = data[ones[0]]
+        #print('right data shape', np.shape(rightData))
+        #rightLabel = label[ones[0]]
+
+        leftData = data[zeros]
+        leftLabel = label[zeros]
         
-        #leftEntropy = self.compute_node_entropy(leftLabel)
-        #rightEntropy = self.compute_node_entropy(rightLabel)
+        rightData = data[ones]
+        #print('right data shape', np.shape(rightData))
+        rightLabel = label[ones]
+
         
         cur_node.left_child = self.generate_tree(leftData, leftLabel)
         cur_node.right_child = self.generate_tree(rightData, rightLabel)
@@ -91,7 +104,6 @@ class Decision_tree:
     def select_feature(self,data,label):
         # iterate through all features and compute their corresponding entropy
         best_feat = 0
-        
         lowestEntropy = float("inf")
         
         for i in range(len(data[0])):    #0 ~ 63
@@ -99,7 +111,6 @@ class Decision_tree:
             featureData = data[:,i]     #3000 x 1 vector             
             zeros = np.asarray(np.where(featureData == 0))
             ones = np.asarray(np.where(featureData == 1))   
-            #print(zeros)
             zerosLabels = label[zeros[0]]
             onesLabels = label[ones[0]]            
             entropy = self.compute_split_entropy(zerosLabels, onesLabels)            
@@ -127,7 +138,6 @@ class Decision_tree:
         # compute the entropy of a tree node (add 1e-15 inside the log2 when computing the entropy to prevent numerical issue)
         node_entropy = 0 # placeholder
         e = 1e-15
-        #print(len(label)) #3000
         totalSamples = len(label)
         
         count = np.bincount(label)
